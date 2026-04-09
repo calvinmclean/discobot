@@ -166,10 +166,14 @@
 	}
 
 	function visibleThreadsForSession(sessionId: string): Thread[] {
-		if (sessions.selectedId !== sessionId || !selectedSessionContext) {
+		if (sessions.selectedId !== sessionId) {
 			return [];
 		}
-		return selectedSessionContext.threads.list;
+		const session = sessions.sessionContexts.get(sessionId);
+		if (!session) {
+			return [];
+		}
+		return session.threads.list;
 	}
 
 	function sessionHasNestedThreads(sessionId: string) {
@@ -196,12 +200,23 @@
 
 	function handleSelectSession(sessionId: string) {
 		const isCurrentSession = sessions.selectedId === sessionId;
+		const session = sessions.sessionContexts.get(sessionId);
 		sessions.select(sessionId);
+<<<<<<< HEAD
 		if (
 			isCurrentSession &&
 			(selectedSessionContext?.threads.list.length ?? 0) > 1
 		) {
 			selectedSessionContext?.ui.selectThread(null);
+=======
+		if (!session) {
+			closeFloatingSidebar();
+			onThreadSelect?.();
+			return;
+		}
+		if (isCurrentSession && session.threads.list.length > 1) {
+			session.ui.selectThread(null);
+>>>>>>> 2571cb2d (Add Ayu Mirage theme)
 		}
 		closeFloatingSidebar();
 		onThreadSelect?.();
@@ -310,8 +325,12 @@
 		if (!renameThreadId || renamingThread) {
 			return;
 		}
+		const session = selectedSessionContext;
+		if (!session) {
+			return;
+		}
 		renamingThread = true;
-		const renamed = await selectedSessionContext?.threads.rename(
+		const renamed = await session.threads.rename(
 			renameThreadId,
 			renameThreadDraft,
 		);
@@ -384,9 +403,12 @@
 		if (!deleteThreadId || deletingThread) {
 			return;
 		}
+		const session = selectedSessionContext;
+		if (!session) {
+			return;
+		}
 		deletingThread = true;
-		const deleted =
-			await selectedSessionContext?.threads.remove(deleteThreadId);
+		const deleted = await session.threads.remove(deleteThreadId);
 		deletingThread = false;
 		if (deleted) {
 			closeDeleteThreadDialog();
@@ -412,7 +434,11 @@
 	}
 
 	function isPrimaryThread(threadId: string) {
-		return threadId === sessions.selectedId;
+		const session = selectedSessionContext;
+		if (!session) {
+			return false;
+		}
+		return threadId === session.sessionId;
 	}
 
 	function isRecentThreadSelected(sessionId: string, threadId: string) {
@@ -587,7 +613,9 @@
 					>
 						New thread
 					</DropdownMenuItem>
-					<DropdownMenuItem onclick={() => openRenameDialog(sessionObj.id)}>
+					<DropdownMenuItem
+						onclick={() => openRenameDialog(sessionObj.id)}
+					>
 						Rename
 					</DropdownMenuItem>
 					<DropdownMenuItem
@@ -607,7 +635,10 @@
 						<button
 							type="button"
 							onclick={() =>
-								handleSelectRecentThread(sessionObj.id, threadObj.id)}
+								handleSelectRecentThread(
+									sessionObj.id,
+									threadObj.id,
+								)}
 							class={`flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm transition-colors ${isSessionThreadSelected(sessionObj.id, threadObj.id) ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-inner" : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}
 						>
 							<span class="min-w-0 flex-1 truncate"
@@ -631,14 +662,18 @@
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" class="w-32">
 								<DropdownMenuItem
-									onclick={() => openRenameThreadDialog(threadObj.id)}
+									onclick={() =>
+										openRenameThreadDialog(threadObj.id)}
 								>
 									Rename
 								</DropdownMenuItem>
 								{#if !isPrimaryThread(threadObj.id)}
 									<DropdownMenuItem
 										variant="destructive"
-										onclick={() => openDeleteThreadDialog(threadObj.id)}
+										onclick={() =>
+											openDeleteThreadDialog(
+												threadObj.id,
+											)}
 									>
 										Delete
 									</DropdownMenuItem>
@@ -686,7 +721,8 @@
 			{#if hasRecentThreadSubtitle(threadObj)}
 				{#if floatingMode}
 					<span class="relative block h-4">
-						<span class="absolute inset-x-0 truncate text-xs text-current/60"
+						<span
+							class="absolute inset-x-0 truncate text-xs text-current/60"
 							>{threadObj.lastMessage ?? ""}</span
 						>
 					</span>
@@ -754,7 +790,9 @@
 						checked={preferences.sidebarAllGroupedByWorkspace}
 						class="data-[state=checked]:bg-muted data-[state=unchecked]:bg-muted/70 [&_[data-slot=switch-thumb]]:bg-foreground dark:[&_[data-slot=switch-thumb]]:bg-foreground focus-visible:ring-muted-foreground/20"
 						onCheckedChange={(checked) =>
-							preferences.setSidebarAllGroupedByWorkspace(checked === true)}
+							preferences.setSidebarAllGroupedByWorkspace(
+								checked === true,
+							)}
 					/>
 				</label>
 			{/if}
@@ -775,12 +813,15 @@
 		<div class="flex-1 overflow-y-auto p-2">
 			<div class="space-y-0.5">
 				{#if sessions.list.length === 0}
-					<p class="px-2 text-xs text-sidebar-foreground/50">No sessions</p>
+					<p class="px-2 text-xs text-sidebar-foreground/50">
+						No sessions
+					</p>
 				{:else}
 					{#if showRecentThreads}
 						<Collapsible.Root
 							open={preferences.sidebarRecentOpen}
-							onOpenChange={(v) => preferences.setSidebarRecentOpen(v)}
+							onOpenChange={(v) =>
+								preferences.setSidebarRecentOpen(v)}
 						>
 							<Collapsible.Trigger
 								class="flex w-full items-center gap-1 px-2 pb-1 pt-1 text-xs font-medium uppercase tracking-[0.16em] text-sidebar-foreground/70 transition-colors hover:text-sidebar-accent-foreground"
@@ -810,15 +851,20 @@
 						{#if showAllSessionsHeader}
 							<Collapsible.Root
 								open={preferences.sidebarAllOpen}
-								onOpenChange={(v) => preferences.setSidebarAllOpen(v)}
+								onOpenChange={(v) =>
+									preferences.setSidebarAllOpen(v)}
 							>
 								<Collapsible.Trigger
 									class="flex w-full items-center gap-1 px-2 pb-1 pt-2 text-xs font-medium uppercase tracking-[0.16em] text-sidebar-foreground/70 transition-colors hover:text-sidebar-accent-foreground"
 								>
 									{#if preferences.sidebarAllOpen}
-										<ChevronDownIcon class="size-3 shrink-0" />
+										<ChevronDownIcon
+											class="size-3 shrink-0"
+										/>
 									{:else}
-										<ChevronRightIcon class="size-3 shrink-0" />
+										<ChevronRightIcon
+											class="size-3 shrink-0"
+										/>
 									{/if}
 									All sessions
 								</Collapsible.Trigger>
@@ -834,31 +880,45 @@
 													class="group flex items-center gap-1.5 px-2 pt-1 text-xs font-medium uppercase tracking-[0.16em] text-sidebar-foreground/60"
 												>
 													{#if group.sourceType === "git"}
-														<GitBranchIcon class="size-3 shrink-0" />
+														<GitBranchIcon
+															class="size-3 shrink-0"
+														/>
 													{:else if group.sourceType === "local"}
-														<FolderIcon class="size-3 shrink-0" />
+														<FolderIcon
+															class="size-3 shrink-0"
+														/>
 													{:else}
-														<PackageIcon class="size-3 shrink-0" />
+														<PackageIcon
+															class="size-3 shrink-0"
+														/>
 													{/if}
-													<span class="min-w-0 flex-1 truncate"
+													<span
+														class="min-w-0 flex-1 truncate"
 														>{group.label}</span
 													>
 													{#if group.workspaceId}
 														<DropdownMenu>
-															<DropdownMenuTrigger>
+															<DropdownMenuTrigger
+															>
 																<Button
 																	variant="ghost"
 																	size="icon-xs"
 																	class="h-6 w-6 rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 																	aria-label={`Workspace actions for ${group.label}`}
-																	onclick={(event) => event.stopPropagation()}
+																	onclick={(
+																		event,
+																	) =>
+																		event.stopPropagation()}
 																>
 																	<EllipsisIcon
 																		class="size-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
 																	/>
 																</Button>
 															</DropdownMenuTrigger>
-															<DropdownMenuContent align="end" class="w-32">
+															<DropdownMenuContent
+																align="end"
+																class="w-32"
+															>
 																<DropdownMenuItem
 																	onclick={() =>
 																		openRenameWorkspaceDialog(
@@ -884,7 +944,8 @@
 													{#each group.sessions as sessionObj (sessionObj.id)}
 														{@render sessionItem(
 															sessionObj,
-															sessions.selectedId === sessionObj.id,
+															sessions.selectedId ===
+																sessionObj.id,
 														)}
 													{/each}
 												</div>
@@ -894,7 +955,8 @@
 										{#each sessions.list as sessionObj (sessionObj.id)}
 											{@render sessionItem(
 												sessionObj,
-												sessions.selectedId === sessionObj.id,
+												sessions.selectedId ===
+													sessionObj.id,
 											)}
 										{/each}
 									{/if}
@@ -913,13 +975,20 @@
 												class="group flex items-center gap-1.5 px-2 pt-1 text-xs font-medium uppercase tracking-[0.16em] text-sidebar-foreground/60"
 											>
 												{#if group.sourceType === "git"}
-													<GitBranchIcon class="size-3 shrink-0" />
+													<GitBranchIcon
+														class="size-3 shrink-0"
+													/>
 												{:else if group.sourceType === "local"}
-													<FolderIcon class="size-3 shrink-0" />
+													<FolderIcon
+														class="size-3 shrink-0"
+													/>
 												{:else}
-													<PackageIcon class="size-3 shrink-0" />
+													<PackageIcon
+														class="size-3 shrink-0"
+													/>
 												{/if}
-												<span class="min-w-0 flex-1 truncate"
+												<span
+													class="min-w-0 flex-1 truncate"
 													>{group.label}</span
 												>
 												{#if group.workspaceId}
@@ -930,24 +999,34 @@
 																size="icon-xs"
 																class="h-6 w-6 rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 																aria-label={`Workspace actions for ${group.label}`}
-																onclick={(event) => event.stopPropagation()}
+																onclick={(
+																	event,
+																) =>
+																	event.stopPropagation()}
 															>
 																<EllipsisIcon
 																	class="size-3 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
 																/>
 															</Button>
 														</DropdownMenuTrigger>
-														<DropdownMenuContent align="end" class="w-32">
+														<DropdownMenuContent
+															align="end"
+															class="w-32"
+														>
 															<DropdownMenuItem
 																onclick={() =>
-																	openRenameWorkspaceDialog(group.workspaceId!)}
+																	openRenameWorkspaceDialog(
+																		group.workspaceId!,
+																	)}
 															>
 																Rename
 															</DropdownMenuItem>
 															<DropdownMenuItem
 																variant="destructive"
 																onclick={() =>
-																	openDeleteWorkspaceDialog(group.workspaceId!)}
+																	openDeleteWorkspaceDialog(
+																		group.workspaceId!,
+																	)}
 															>
 																Delete
 															</DropdownMenuItem>
@@ -959,7 +1038,8 @@
 												{#each group.sessions as sessionObj (sessionObj.id)}
 													{@render sessionItem(
 														sessionObj,
-														sessions.selectedId === sessionObj.id,
+														sessions.selectedId ===
+															sessionObj.id,
 													)}
 												{/each}
 											</div>
@@ -969,7 +1049,8 @@
 									{#each sessions.list as sessionObj (sessionObj.id)}
 										{@render sessionItem(
 											sessionObj,
-											sessions.selectedId === sessionObj.id,
+											sessions.selectedId ===
+												sessionObj.id,
 										)}
 									{/each}
 								{/if}
@@ -992,7 +1073,8 @@
 			<Input
 				value={renameDraft}
 				oninput={(event) => {
-					renameDraft = (event.currentTarget as HTMLInputElement).value;
+					renameDraft = (event.currentTarget as HTMLInputElement)
+						.value;
 				}}
 				onkeydown={handleRenameInputKeydown}
 				maxlength={120}
@@ -1013,7 +1095,8 @@
 					onclick={() => {
 						void handleRenameSession();
 					}}
-					disabled={renamingSession || renameDraft.trim().length === 0}
+					disabled={renamingSession ||
+						renameDraft.trim().length === 0}
 				>
 					Save
 				</Button>
@@ -1032,7 +1115,9 @@
 			<Input
 				value={renameThreadDraft}
 				oninput={(event) => {
-					renameThreadDraft = (event.currentTarget as HTMLInputElement).value;
+					renameThreadDraft = (
+						event.currentTarget as HTMLInputElement
+					).value;
 				}}
 				onkeydown={handleRenameThreadInputKeydown}
 				maxlength={120}
@@ -1053,7 +1138,8 @@
 					onclick={() => {
 						void handleRenameThread();
 					}}
-					disabled={renamingThread || renameThreadDraft.trim().length === 0}
+					disabled={renamingThread ||
+						renameThreadDraft.trim().length === 0}
 				>
 					Save
 				</Button>
@@ -1072,8 +1158,9 @@
 			<Input
 				value={renameWorkspaceDraft}
 				oninput={(event) => {
-					renameWorkspaceDraft = (event.currentTarget as HTMLInputElement)
-						.value;
+					renameWorkspaceDraft = (
+						event.currentTarget as HTMLInputElement
+					).value;
 				}}
 				maxlength={120}
 				placeholder="Workspace name"
@@ -1134,7 +1221,8 @@
 			<AlertDialogHeader>
 				<AlertDialogTitle>Delete thread?</AlertDialogTitle>
 				<AlertDialogDescription>
-					Delete "{deleteDialogThreadName()}"? This action cannot be undone.
+					Delete "{deleteDialogThreadName()}"? This action cannot be
+					undone.
 				</AlertDialogDescription>
 			</AlertDialogHeader>
 			<AlertDialogFooter>
@@ -1161,7 +1249,8 @@
 			<AlertDialogHeader>
 				<AlertDialogTitle>Delete workspace?</AlertDialogTitle>
 				<AlertDialogDescription>
-					Delete "{deleteDialogWorkspaceName()}"? This action cannot be undone.
+					Delete "{deleteDialogWorkspaceName()}"? This action cannot
+					be undone.
 				</AlertDialogDescription>
 			</AlertDialogHeader>
 			<AlertDialogFooter>

@@ -6,6 +6,7 @@ export type ThemeColorScheme =
 	| "flexoki"
 	| "nord"
 	| "tokyo-night"
+	| "ayu-mirage"
 	| "solarized"
 	| "dracula"
 	| "catppuccin-mocha"
@@ -120,6 +121,16 @@ export const THEME_METADATA: ThemeMetadata[] = [
 		},
 	},
 	{
+		id: "ayu-mirage",
+		name: "Ayu Mirage",
+		mode: "dark",
+		preview: {
+			background: "#242936",
+			primary: "#ffcc66",
+			foreground: "#cccac2",
+		},
+	},
+	{
 		id: "dracula",
 		name: "Dracula",
 		mode: "dark",
@@ -184,6 +195,7 @@ function resolveStoredColorScheme(): ThemeColorScheme | null {
 		storedScheme === "flexoki" ||
 		storedScheme === "nord" ||
 		storedScheme === "tokyo-night" ||
+		storedScheme === "ayu-mirage" ||
 		storedScheme === "solarized" ||
 		storedScheme === "dracula" ||
 		storedScheme === "catppuccin-mocha" ||

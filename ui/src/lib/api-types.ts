@@ -99,6 +99,7 @@ export type ThemeColorScheme =
 	| "flexoki"
 	| "nord"
 	| "tokyo-night"
+	| "ayu-mirage"
 	| "solarized"
 	| "dracula"
 	| "alucard"
